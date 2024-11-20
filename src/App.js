@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
@@ -8,36 +8,66 @@ import { SocketProvider } from './context/SocketContext';
 import NotificationPopup from './components/NotificationPopup';
 import UserRSVP from './components/RSVP/userRSVP';
 
+const ProtectedRoute = ({ token, children }) => {
+    if (!token) {
+        return <Navigate to="/login" />;
+    }
+    return children;
+};
+
 const App = () => {
-  // Check if the token exists (you can modify this to check for your preferred method of token storage)
-  const token = localStorage.getItem('token');
+    const [token, setToken] = useState(localStorage.getItem('token'));
 
-  return (
-    <SocketProvider>
-      <Router>
-        <NotificationPopup />
-        <Routes>
-          {/* Default route: redirect to login page if no token exists */}
-          <Route path="/" element={token ? <Navigate to="/events" /> : <Navigate to="/login" />} />
-          
-          {/* Login route */}
-          <Route path="/login" element={<Login />} />
-          
-          {/* Register route */}
-          <Route path="/register" element={<Register />} />
-          
-          {/* If token exists, allow navigation to events page */}
-          <Route path="/events" element={token ? <EventList /> : <Navigate to="/login" />} />
-          
-          {/* If token exists, allow navigation to create event page */}
-          <Route path="/events/create" element={token ? <EventCreate /> : <Navigate to="/login" />} />
+    useEffect(() => {
+        const handleStorageChange = () => {
+            setToken(localStorage.getItem('token'));
+        };
 
-          {/* New route for the UserRSVP page */}
-          <Route path="/user/rsvps" element={token ? <UserRSVP /> : <Navigate to="/login" />} />
-        </Routes>
-      </Router>
-    </SocketProvider>
-  );
+        window.addEventListener('storage', handleStorageChange);
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
+    }, []);
+
+    return (
+        <SocketProvider>
+            <Router>
+                <NotificationPopup />
+                <Routes>
+                    <Route
+                        path="/"
+                        element={token ? <Navigate to="/events" /> : <Navigate to="/login" />}
+                    />
+                    <Route path="/login" element={<Login setToken={setToken} />} />
+                    <Route path="/register" element={<Register setToken={setToken} />} />
+                    <Route
+                        path="/events"
+                        element={
+                            <ProtectedRoute token={token}>
+                                <EventList />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/events/create"
+                        element={
+                            <ProtectedRoute token={token}>
+                                <EventCreate />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/user/rsvps"
+                        element={
+                            <ProtectedRoute token={token}>
+                                <UserRSVP />
+                            </ProtectedRoute>
+                        }
+                    />
+                </Routes>
+            </Router>
+        </SocketProvider>
+    );
 };
 
 export default App;

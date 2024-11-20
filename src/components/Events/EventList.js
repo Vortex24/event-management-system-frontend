@@ -96,6 +96,7 @@ const EventList = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('userId');
         localStorage.removeItem('role'); // Remove role as well
+
         // Redirect to login page
         navigate('/login');
     };
