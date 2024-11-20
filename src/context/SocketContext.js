@@ -16,7 +16,7 @@ export const SocketProvider = ({ children }) => {
 
         if (token && userId) {
             // Establish socket connection
-            const newSocket = io('https://event-management-system-backend-pu9z.onrender.com');
+            const newSocket = io('http://localhost:7000');
 
             // Listen for notifications
             newSocket.on('rsvpNotification', (data) => {
@@ -29,7 +29,7 @@ export const SocketProvider = ({ children }) => {
                         setNotifications((prevNotifications) =>
                             prevNotifications.filter((notification) => notification.eventId !== data.eventId)
                         );
-                    }, 5000);
+                    }, 3500);
                 }
             });
 
