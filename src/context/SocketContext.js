@@ -16,7 +16,7 @@ export const SocketProvider = ({ children }) => {
 
         if (token && userId) {
             // Establish socket connection
-            const newSocket = io('http://localhost:7000');
+            const newSocket = io('https://event-management-system-backend-pu9z.onrender.com');
 
             // Listen for notifications
             newSocket.on('rsvpNotification', (data) => {

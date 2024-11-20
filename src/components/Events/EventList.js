@@ -7,6 +7,7 @@ import { useSocket } from '../../context/SocketContext';
 const EventList = () => {
     const [events, setEvents] = useState([]); // Local state to hold events
     const navigate = useNavigate();
+    // eslint-disable-next-line
     const { events: socketEvents, setEvents: setSocketEvents, socket } = useSocket(); // Using socket context
 
     // Check if the user is an admin
