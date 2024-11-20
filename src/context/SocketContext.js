@@ -29,7 +29,7 @@ export const SocketProvider = ({ children }) => {
                         setNotifications((prevNotifications) =>
                             prevNotifications.filter((notification) => notification.eventId !== data.eventId)
                         );
-                    }, 5000);
+                    }, 3500);
                 }
             });
 

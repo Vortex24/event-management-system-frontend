@@ -30,54 +30,66 @@ const EventList = () => {
     // Handle real-time updates from socket for RSVP and event updates
     useEffect(() => {
         if (!socket) return;
-
+    
         // Listen for real-time updates to "interestedCount" or event status changes
         socket.on('updateInterestedCount', (data) => {
-            // Update the events list with the new interested count
-            setEvents((prevEvents) =>
-                prevEvents.map((event) =>
+            setEvents((prevEvents) => {
+                const updatedEvents = prevEvents.map((event) =>
                     event._id === data.eventId
-                        ? { ...event, interestedCount: data.interestedCount } // Update only the affected event
+                        ? { ...event, interestedCount: data.interestedCount }
                         : event
-                )
-            );
+                );
+                return updatedEvents;
+            });
         });
-
+    
         socket.on('rsvpStatusUpdated', (data) => {
-            // Update the RSVP status for the event
-            setEvents((prevEvents) =>
-                prevEvents.map((event) =>
+            console.log('rsvp status updated from backend', data);
+    
+            setEvents((prevEvents) => {
+                const updatedEvents = prevEvents.map((event) =>
                     event._id === data.eventId
-                        ? { ...event, userRSVP: data.status } // Update the RSVP status
+                        ? { ...event, userRSVP: data.status }
                         : event
-                )
-            );
+                );
+                return updatedEvents;
+            });
         });
-
+    
         return () => {
             socket.off('updateInterestedCount');
             socket.off('rsvpStatusUpdated');
         };
     }, [socket]);
+    
 
     // Handle RSVP updates for a user
     const handleRSVP = async (id, status) => {
         try {
-            await rsvpEvent(id, { status });
-
-            // Update the RSVP status for the event in the state
+            // Optimistically update the state
             setEvents((prevEvents) =>
                 prevEvents.map((event) =>
                     event._id === id ? { ...event, userRSVP: status } : event
                 )
             );
-
+    
+            // Send the RSVP request to the server
+            await rsvpEvent(id, { status });
+    
             alert('RSVP updated!');
         } catch (error) {
             console.error('RSVP failed:', error.response?.data?.message || error.message);
             alert('RSVP failed!');
+    
+            // Revert the state if the RSVP fails
+            setEvents((prevEvents) =>
+                prevEvents.map((event) =>
+                    event._id === id ? { ...event, userRSVP: null } : event // Adjust as needed
+                )
+            );
         }
     };
+    
 
     // Handle event deletion
     const handleDelete = async (eventId) => {
