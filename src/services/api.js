@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://event-management-system-backend-pu9z.onrender.com/api'; // Adjust based on your backend URL
+const API_URL = 'http://localhost:7000/api'; // Adjust based on your backend URL
 
 // Axios instance
 const api = axios.create({
