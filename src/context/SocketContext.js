@@ -1,70 +1,82 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { io } from 'socket.io-client';
+import { initializeSocket, getSocket } from '../utils/socket';
 
 const SocketContext = createContext();
 
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
-    const [socket, setSocket] = useState(null);
+    const [socketConnected, setSocketConnected] = useState(false);
     const [notifications, setNotifications] = useState([]);
-    const [events, setEvents] = useState([]); // State for events
+    const [events, setEvents] = useState([]);
+    const [userId, setUserId] = useState(localStorage.getItem('userId')); // Reactive userId
 
+    // Immediately initialize the socket
+    const socket = initializeSocket();
+
+    // Keep userId updated if `localStorage` changes
     useEffect(() => {
-        const token = localStorage.getItem('token'); // Use token to connect socket
-        const userId = localStorage.getItem('userId'); // userId is stored in localStorage after login
+        const handleStorageChange = () => {
+            setUserId(localStorage.getItem('userId'));
+        };
 
-        if (token && userId) {
-            // Establish socket connection
-            const newSocket = io('http://localhost:7000');
+        window.addEventListener('storage', handleStorageChange);
 
-            // Listen for notifications
-            newSocket.on('rsvpNotification', (data) => {
-                // Show the notification if it’s for the current logged-in user
-                if (data.recipientId === userId) {
-                    setNotifications((prev) => [...prev, data]);
-
-                    // Remove notification after 5 seconds
-                    setTimeout(() => {
-                        setNotifications((prevNotifications) =>
-                            prevNotifications.filter((notification) => notification.eventId !== data.eventId)
-                        );
-                    }, 3500);
-                }
-            });
-
-            // Listen for real-time updates to "interestedCount"
-            newSocket.on('updateInterestedCount', (data) => {
-                // Use the functional form of setState to ensure we have the latest state
-                setEvents((prevEvents) => {
-                    // Map over the previous events to update the interested count for the specific event
-                    const updatedEvents = prevEvents.map((event) =>
-                        event._id === data.eventId
-                            ? { ...event, interestedCount: data.interestedCount }
-                            : event
-                    );
-
-                    // Return the updated events array
-                    return updatedEvents;
-                });
-            });
-
-            setSocket(newSocket);
-
-            return () => newSocket.close();
-        }
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }, []);
+
+    // Set up event listeners directly
+    useEffect(() => {
+        socket.on('connect', () => setSocketConnected(true));
+        socket.on('disconnect', () => setSocketConnected(false));
+
+        // Example of handling notifications or custom events
+        socket.on('rsvpNotification', (data) => {
+            if (data.recipientId === userId) {
+                setNotifications((prev) => [...prev, data]);
+
+                // Remove notification after 3.5 seconds
+                setTimeout(() => {
+                    setNotifications((prevNotifications) =>
+                        prevNotifications.filter((notification) => notification.eventId !== data.eventId)
+                    );
+                }, 3500);
+            }
+        });
+
+        socket.on('updateInterestedCount', (data) => {
+            setEvents((prevEvents) => {
+                const updatedEvents = prevEvents.map((event) =>
+                    event._id === data.eventId
+                        ? { ...event, interestedCount: data.interestedCount }
+                        : event
+                );
+                return updatedEvents;
+            });
+        });
+
+        // Clean up listeners on unmount
+        return () => {
+            socket.off('rsvpNotification');
+            socket.off('updateInterestedCount');
+        };
+    }, [socket, userId]); // Re-run listeners if userId changes
+
+    const removeNotification = (index) => {
+        setNotifications((prev) => prev.filter((_, i) => i !== index));
+    };
 
     return (
         <SocketContext.Provider
             value={{
-                socket,
+                socket: getSocket(),
                 notifications,
-                events, // Provide events to be updated in components
-                setEvents, // Allow direct updates to events from components
-                removeNotification: (index) => {
-                    setNotifications((prev) => prev.filter((_, i) => i !== index));
-                },
+                removeNotification,
+                events,
+                setEvents,
+                socketConnected,
             }}
         >
             {children}
