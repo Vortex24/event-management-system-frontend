@@ -5,7 +5,7 @@ let socket = null;
 
 export const initializeSocket = () => {
     if (!socket) {
-        socket = io('http://localhost:7000'); // Connect without token or userId
+        socket = io('https://event-management-system-backend-pu9z.onrender.com'); // Connect without token or userId
 
         socket.on('connect', () => {
             console.log('Socket connected!');
